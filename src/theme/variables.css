@@ -1,2 +1,10 @@
 /* For information on how to create your own theme, please see:
 http://ionicframework.com/docs/theming/ */
+
+form, input, optgroup, select {
+    margin-top: 20px;
+}
+
+.select-wrapper-inner {
+    margin-top: 12px !important;
+}
