@@ -14,30 +14,21 @@ import '@ionic/react/css/text-transformation.css';
 import '@ionic/react/css/flex-utils.css';
 import '@ionic/react/css/display.css';
 
-/**
- * Ionic Dark Mode
- * -----------------------------------------------------
- * For more info, please see:
- * https://ionicframework.com/docs/theming/dark-mode
- */
-
-/* import '@ionic/react/css/palettes/dark.always.css'; */
-/* import '@ionic/react/css/palettes/dark.class.css'; */
+/* Ionic Dark Mode */
 import '@ionic/react/css/palettes/dark.system.css';
 
 /* Theme variables */
 import './theme/variables.css';
 
-setupIonicReact();
-
 import React, { useState, useEffect } from 'react';
-import { IonApp, setupIonicReact,IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem, IonButton, IonModal, IonInput, IonLabel, IonSelect, IonSelectOption } from '@ionic/react';
-
+import { IonApp, setupIonicReact, IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonButton, IonModal, IonItemSliding, IonItem, IonItemOptions, IonItemOption } from '@ionic/react';
 import TaskItem from './components/TaskItem';
 import TaskForm from './components/TaskForm';
 import { Task } from './interfaces/types';
 import { useTodos } from './hooks/useTodos';
-import { Geolocation } from '@capacitor/geolocation';
+import { fetchWeatherWithGeolocation } from './hooks/locationService';
+
+setupIonicReact();
 
 const App: React.FC = () => {
   const { tasks, addTask, deleteTask, updateTask } = useTodos();
@@ -46,70 +37,57 @@ const App: React.FC = () => {
   const [weather, setWeather] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchWeatherWithGeolocation = async () => {
-      try {
-        // Get the user's current position
-        const position = await Geolocation.getCurrentPosition();
-        const { latitude, longitude } = position.coords;
-
-        // Fetch weather data for the current location
-        const response = await fetch(
-          `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=055edc42bdc91b2c5390365d1ae87c67&units=metric`
-        );
-        const data = await response.json();
-
-        if (data.weather && data.weather.length > 0 && data.main) {
-          setWeather(`${data.weather[0].description}, ${data.main.temp}°C`);
-        } else {
-          setWeather("Données météo indisponibles");
-        }
-      } catch (error) {
-        console.error('Failed to fetch weather data:', error);
-        setWeather('Météo indisponible');
-      }
-    };
-
-    fetchWeatherWithGeolocation();
+    fetchWeatherWithGeolocation(setWeather);
   }, []);
-  try {
-    return (
-      <IonApp>
-        <IonHeader>
-          <IonToolbar>
-            <IonTitle>TaskMaster {weather && `| Meteo: ${weather}`}</IonTitle>
-          </IonToolbar>
-        </IonHeader>
 
-        <IonContent>
-          <IonButton expand="block" onClick={() => {
-            setEditingTask(undefined);
-            setShowModal(true);
-          }}>
-            Ajouter une tâche
-          </IonButton>
+  return (
+    <IonApp>
+      <IonHeader>
+        <IonToolbar>
+          <IonTitle>TaskMaster {weather && `| Meteo: ${weather}`}</IonTitle>
+        </IonToolbar>
+      </IonHeader>
 
-          <IonList>
-            {tasks.map((task) => (
-              <TaskItem
-                key={task.id}
-                task={task}
-                onDelete={deleteTask}
-                onUpdate={(task) => {
+      <IonContent>
+        <IonButton expand="block" onClick={() => {
+          setEditingTask(undefined);
+          setShowModal(true);
+        }}>
+          Ajouter une tâche
+        </IonButton>
+
+        <IonList>
+          {tasks.map((task) => (
+            <IonItemSliding key={task.id}>
+              <IonItem>
+                <TaskItem
+                  task={task}
+                  onDelete={deleteTask}
+                  onUpdate={(task) => {
+                    setEditingTask(task);
+                    setShowModal(true);
+                  }}
+                />
+              </IonItem>
+              <IonItemOptions side="end">
+                <IonItemOption color="primary" onClick={() => {
                   setEditingTask(task);
                   setShowModal(true);
-                }}
-              />
-            ))}
-          </IonList>
+                }}>Modifier</IonItemOption>
+                <IonItemOption color="danger" onClick={() => deleteTask(task.id)}>Supprimer</IonItemOption>
+              </IonItemOptions>
+            </IonItemSliding>
+          ))}
+        </IonList>
 
-          <IonModal isOpen={showModal} onDidDismiss={() => setShowModal(false)}>
-            <IonHeader>
-              <IonToolbar>
-                <IonTitle>{editingTask ? 'Modifier Tâche' : 'Nouvelle Tâche'}</IonTitle>
-              </IonToolbar>
-            </IonHeader>
+        <IonModal isOpen={showModal} onDidDismiss={() => setShowModal(false)}>
+          <IonHeader>
+            <IonToolbar>
+              <IonTitle>{editingTask ? 'Modifier Tâche' : 'Nouvelle Tâche'}</IonTitle>
+            </IonToolbar>
+          </IonHeader>
 
-            <IonContent>
+          <IonContent>
               <TaskForm
                 existingTask={editingTask}
                 onSave={(task) => {
@@ -127,15 +105,11 @@ const App: React.FC = () => {
                 }}
                 onCancel={() => setShowModal(false)}
               />
-            </IonContent>
-          </IonModal>
-        </IonContent>
-      </IonApp>
-    );
-  } catch (error) {
-    console.error('Failed to render app:', error);
-    return null;
-  }
+          </IonContent>
+        </IonModal>
+      </IonContent>
+    </IonApp>
+  );
 };
 
 export default App;
